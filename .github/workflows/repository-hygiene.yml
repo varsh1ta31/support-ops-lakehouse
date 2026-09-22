@@ -1,0 +1,38 @@
+name: Repository hygiene
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  repository-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject committed local and generated artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden='(^|/)(\.env([^/]+)?|\.venv|\.databricks|\.bundle|data|artifacts|mlruns|checkpoints)(/|$)'
+          if git ls-files | grep -E "$forbidden" | grep -vE '(^|/)\.env\.example$'; then
+            echo "Generated artifacts or local configuration were committed."
+            exit 1
+          fi
+
+      - name: Reject oversized files
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit=$((10 * 1024 * 1024))
+          while IFS= read -r -d '' file; do
+            size=$(stat -c %s "$file")
+            if (( size > limit )); then
+              echo "$file is larger than 10 MiB ($size bytes)."
+              exit 1
+            fi
+          done < <(git ls-files -z)

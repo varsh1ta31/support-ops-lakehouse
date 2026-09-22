@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+
+# Virtual environments and local environment variables
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Databricks local state and generated artifacts
+.databricks/
+.bundle/
+*.dbc
+
+# Data, model, and streaming artifacts
+data/
+artifacts/
+mlruns/
+checkpoints/
+spark-warehouse/
+derby.log
+metastore_db/
+*.parquet
+*.delta
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
