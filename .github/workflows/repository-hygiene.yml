@@ -36,3 +36,34 @@ jobs:
               exit 1
             fi
           done < <(git ls-files -z)
+
+  python-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install project
+        run: python -m pip install -e '.[dev]'
+
+      - name: Lint and type-check
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Validate YAML syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          for path in sorted(Path(".").rglob("*.yml")):
+              yaml.safe_load(path.read_text(encoding="utf-8"))
+              print(f"valid yaml: {path}")
+          PY

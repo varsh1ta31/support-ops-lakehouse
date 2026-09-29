@@ -1,0 +1,9 @@
+timezone = "UTC"
+late_event_tolerance_minutes = 60
+risk_threshold = 0.70
+ai_max_investigations_per_run = 20
+
+[storage]
+landing_path = "/Volumes/{catalog}/raw/landing"
+event_stream_path = "/Volumes/{catalog}/raw/ticket_events"
+checkpoint_path = "/Volumes/{catalog}/ops/checkpoints"

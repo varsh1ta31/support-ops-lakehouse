@@ -1,0 +1,5 @@
+catalog = "support_dev"
+environment = "dev"
+
+[storage]
+checkpoint_path = "/Volumes/{catalog}/ops/checkpoints/dev"

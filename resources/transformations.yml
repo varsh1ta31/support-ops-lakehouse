@@ -1,0 +1,2 @@
+# Transformation jobs are added after Silver and Gold pipelines exist.
+resources: {}

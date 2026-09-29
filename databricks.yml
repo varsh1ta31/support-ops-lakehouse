@@ -1,0 +1,34 @@
+bundle:
+  name: support-ops-lakehouse
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the selected logical environment
+    default: support_dev
+
+sync:
+  include:
+    - src/**
+    - config/**
+  exclude:
+    - tests/**
+    - docs/**
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      catalog: support_dev
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+  prod:
+    mode: production
+    variables:
+      catalog: support_prod
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}

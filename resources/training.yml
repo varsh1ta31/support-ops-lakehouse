@@ -1,0 +1,2 @@
+# Training jobs are deliberately independent from operational scoring.
+resources: {}

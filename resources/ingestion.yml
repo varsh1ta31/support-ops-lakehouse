@@ -1,0 +1,2 @@
+# Ingestion jobs are added in Phase 1 after their executable entry points exist.
+resources: {}

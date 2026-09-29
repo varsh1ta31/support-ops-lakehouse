@@ -12,6 +12,8 @@
 
 ## Phase 0 — Resolve contracts and scaffold the repository
 
+Status: complete locally; live bundle validation awaits Databricks workspace authentication.
+
 Deliverables:
 
 - Python package, dependency groups, lint/test configuration, and initial README
