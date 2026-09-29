@@ -1,0 +1,15 @@
+number_of_customers = 100
+number_of_products = 6
+number_of_tickets = 10000
+events_per_ticket = 5
+customer_distribution = "skewed"
+product_distribution = "skewed"
+sla_breach_rate = 0.12
+escalation_rate = 0.08
+open_ticket_rate = 0.15
+invalid_record_count = 0
+seed = 42
+
+[date_range]
+start = 2025-01-01
+end = 2025-12-31

@@ -37,6 +37,8 @@ Exit gate:
 
 ## Phase 1 — Synthetic data and batch Bronze ingestion
 
+Status: in progress; deterministic batch-data generation is complete.
+
 Deliverables:
 
 - Configurable, deterministic generators for products, accounts, contracts, and tickets

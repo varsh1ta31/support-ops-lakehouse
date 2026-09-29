@@ -59,6 +59,29 @@ The deployment resource files are intentionally empty until their corresponding 
 component exists. This keeps deployed configuration honest rather than publishing placeholder
 jobs that cannot run.
 
+## Generate synthetic batch data
+
+Generator profiles live in `config/generation`. The demo profile writes 100 customers, their
+priority-specific contracts, six products, and 10,000 historical tickets:
+
+```bash
+support-ops-generate \
+  --profile config/generation/demo.toml \
+  --output data/generated/demo
+```
+
+Use `--overwrite` to intentionally replace generator-managed files. Generated outputs are ignored
+by Git and include a manifest containing row counts, configuration, and SHA-256 checksums.
+
+Available profiles:
+
+- `demo.toml`: quick representative dataset with intentional customer and product skew
+- `quality.toml`: small dataset plus isolated known-invalid tickets for quarantine tests
+- `scale.toml`: one-million-ticket performance and ingestion profile
+
+`events_per_ticket` is recorded now so the same profiles can drive the event generator in the
+streaming component; this batch component does not produce ticket events yet.
+
 ## Repository layout
 
 ```text

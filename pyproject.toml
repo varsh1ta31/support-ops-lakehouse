@@ -12,6 +12,9 @@ license = { text = "All rights reserved" }
 authors = [{ name = "varsh1ta31" }]
 dependencies = []
 
+[project.scripts]
+support-ops-generate = "support_ops.synthetic.cli:main"
+
 [project.optional-dependencies]
 dev = [
   "mypy>=1.15,<2",
