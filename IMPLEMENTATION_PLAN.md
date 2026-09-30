@@ -37,7 +37,8 @@ Exit gate:
 
 ## Phase 1 — Synthetic data and batch Bronze ingestion
 
-Status: in progress; deterministic batch-data generation is complete.
+Status: in progress; deterministic data generation and Bronze batch-ingestion code are complete.
+Live deployment and Delta execution await Databricks workspace authentication.
 
 Deliverables:
 

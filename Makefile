@@ -1,4 +1,4 @@
-.PHONY: install format lint test check
+.PHONY: install format lint test build check
 
 install:
 	python3 -m pip install -e '.[dev]'
@@ -14,5 +14,8 @@ lint:
 
 test:
 	python3 -m pytest
+
+build:
+	python3 -m build --wheel
 
 check: lint test

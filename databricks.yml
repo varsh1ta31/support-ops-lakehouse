@@ -4,6 +4,12 @@ bundle:
 include:
   - resources/*.yml
 
+artifacts:
+  default:
+    type: whl
+    build: python -m build --wheel
+    path: .
+
 variables:
   catalog:
     description: Unity Catalog catalog for the selected logical environment

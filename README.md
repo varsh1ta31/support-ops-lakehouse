@@ -82,6 +82,31 @@ Available profiles:
 `events_per_ticket` is recorded now so the same profiles can drive the event generator in the
 streaming component; this batch component does not produce ticket events yet.
 
+## Run Bronze batch ingestion
+
+Generate data locally, copy each CSV into its corresponding governed landing directory, and run
+the bundle job:
+
+```text
+/Volumes/support_dev/raw/landing/products/
+/Volumes/support_dev/raw/landing/accounts/
+/Volumes/support_dev/raw/landing/contracts/
+/Volumes/support_dev/raw/landing/tickets/
+```
+
+```bash
+databricks bundle validate --target dev
+databricks bundle deploy --target dev
+databricks bundle run --target dev batch_ingestion
+```
+
+The first job task idempotently creates the catalog, schemas, and managed Volumes. Four parallel
+tasks then ingest the reference and historical CSV files into Bronze Delta tables. Source values
+remain strings in Bronze so malformed values are preserved for Silver validation. Each record
+also receives its ingestion time, source file, pipeline run ID, and deterministic content hash.
+
+Rerunning the job is safe: Delta `MERGE` inserts only previously unseen record hashes.
+
 ## Repository layout
 
 ```text

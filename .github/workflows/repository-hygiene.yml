@@ -56,6 +56,9 @@ jobs:
       - name: Test
         run: make test
 
+      - name: Build deployment wheel
+        run: python -m build --wheel
+
       - name: Validate YAML syntax
         shell: bash
         run: |

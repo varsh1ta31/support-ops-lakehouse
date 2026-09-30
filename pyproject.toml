@@ -14,9 +14,12 @@ dependencies = []
 
 [project.scripts]
 support-ops-generate = "support_ops.synthetic.cli:main"
+support-ops-bootstrap = "support_ops.platform.bootstrap:main"
+support-ops-batch-ingest = "support_ops.ingestion.batch:main"
 
 [project.optional-dependencies]
 dev = [
+  "build>=1.2,<2",
   "mypy>=1.15,<2",
   "pytest>=8.3,<9",
   "pytest-cov>=6,<7",
@@ -54,3 +57,7 @@ indent-style = "space"
 python_version = "3.11"
 strict = true
 files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["pyspark", "pyspark.*"]
+ignore_missing_imports = true
