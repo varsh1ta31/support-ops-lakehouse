@@ -132,11 +132,14 @@ def validate_record(
     Validation precedes duplicate rejection so changed, malformed payloads remain inspectable.
     Reference checks are mandatory for contracts, tickets, and events. Timestamp strings must
     include an offset. Lateness and ticket transitions belong to subsequent state processing.
+    An unparseable source line arrives with its raw text in ``_corrupt_record``.
     """
     schema = SOURCE_SCHEMAS[entity]
     payload = json.dumps(dict(raw), sort_keys=True, separators=(",", ":"), default=str)
     record: dict[str, object] = {}
     reasons: list[str] = []
+    if raw.get("_corrupt_record") is not None:
+        reasons.append("record: malformed source line")
     for field in schema.fields:
         value = raw.get(field.name)
         if isinstance(value, str):

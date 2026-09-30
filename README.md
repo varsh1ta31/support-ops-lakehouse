@@ -12,8 +12,9 @@ Synthetic data generation and Bronze batch ingestion are deployed and verified i
 Free Edition. The engine-neutral Silver validation layer is implemented and tested locally.
 Silver/quarantine persistence and quality metrics are implemented with a retry-safe staging layer.
 Ticket state is reconstructed from historical tickets plus ordered events, including point-in-time
-state, with resolution-SLA fields from the contract in force at ticket creation. Next: live
-Silver deployment validation.
+state, with resolution-SLA fields from the contract in force at ticket creation. Ticket events
+stream from incremental files into Bronze with checkpointing, deduplication, late-event labelling,
+and malformed-line capture. Next: live Silver and streaming deployment validation.
 
 ## Documentation
 
@@ -125,7 +126,7 @@ databricks bundle deploy --target dev
 databricks bundle run --target dev silver_transformations
 ```
 
-The job validates products, accounts, contracts, then tickets; writes typed Silver rows and
+The job validates products, accounts, contracts, tickets, then streamed ticket events; writes typed Silver rows and
 `ops.invalid_records`; and records one `ops.quality_metrics` row per entity and job run. It then
 rebuilds `silver.ticket_state` as of the run start, including SLA deadline and minutes remaining
 (see [ticket state](./docs/architecture/0007-ticket-state.md) and
@@ -134,6 +135,23 @@ Retries reuse durable decisions in `ops.silver_evaluations`. New runs process ne
 Accepted natural keys are insert-only: changed records with an existing key count as duplicates.
 Keep manual runs serialized with the scheduled job. See [the persistence decision](./docs/architecture/0006-silver-persistence.md)
 for recovery behavior, metric definitions, and the first-accepted record policy.
+
+## Stream ticket events
+
+The producer appends deterministic event files to the `raw.ticket_events` Volume. The stream job
+lands every new file in `bronze.ticket_events`, then stops (`availableNow`). Run it on a schedule
+for continuous ingestion; it resumes from its checkpoint.
+
+```bash
+databricks bundle run --target dev event_producer
+databricks bundle run --target dev event_stream_ingestion
+databricks bundle run --target dev silver_transformations
+```
+
+Locally, `support-ops-generate-events --profile config/generation/stream.toml --output <dir>
+--batches 4` writes the same files. Per-microbatch counts, watermarks, and rates are in
+`ops.streaming_metrics`. See [the streaming decision](./docs/architecture/0009-event-streaming.md)
+for duplicate, late, and malformed handling and for checkpoint resets.
 
 ## Repository layout
 

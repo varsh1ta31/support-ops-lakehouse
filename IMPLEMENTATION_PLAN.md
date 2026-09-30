@@ -89,6 +89,17 @@ Exit gate:
 
 ## Phase 3 — File-based streaming ingestion
 
+Status: implemented and verified locally (ADR 0009). The deterministic event-file producer, the
+`availableNow` Structured Streaming Bronze job, the per-microbatch metrics, and Silver quarantine of
+malformed lines pass local Spark 4.0/Delta 4.0 tests. Those tests cover checkpoint restart,
+a crash between the Bronze and metrics writes, cross-microbatch duplicates, late labelling
+against the watermark, and future-dated events. The Silver job now validates streamed events
+before rebuilding ticket state.
+
+Next task: deploy both streaming jobs and the updated Silver job to Databricks Free Edition. Run
+the producer and stream twice to show live checkpoint recovery, and record the evidence
+alongside the Phase 2 live verification.
+
 Deliverables:
 
 - Configurable incremental event-file generator
@@ -202,4 +213,5 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The next implementation slice is Phase 2 live Silver job verification, then Phase 3 streaming.
+The next implementation slice is live verification of the Phase 2 Silver and Phase 3 streaming jobs,
+then Phase 4 Gold data products.

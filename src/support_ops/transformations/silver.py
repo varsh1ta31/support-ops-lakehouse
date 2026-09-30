@@ -15,6 +15,8 @@ from support_ops.quality.validation import KEYS, Disposition, ValidationContext,
 from support_ops.schemas import INGESTION_METADATA, INVALID_RECORDS, SOURCE_SCHEMAS
 
 BATCH_ENTITIES = ("products", "accounts", "contracts", "tickets")
+# Streamed events validate after the references they depend on.
+SILVER_ENTITIES = (*BATCH_ENTITIES, "ticket_events")
 EVALUATION_DDL = """
     pipeline_run_id STRING, source STRING, _record_hash STRING,
     disposition STRING, normalized_payload STRING, raw_payload STRING,
@@ -326,7 +328,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     spark = SparkSession.builder.getOrCreate()
     spark.conf.set("spark.sql.session.timeZone", "UTC")
     now = datetime.now(UTC)
-    for entity in BATCH_ENTITIES:
+    from support_ops.ingestion.streaming import bronze_events_ddl
+
+    # The stream may not have run yet; an empty Bronze table is a valid empty snapshot.
+    spark.sql(bronze_events_ddl(args.catalog))
+    for entity in SILVER_ENTITIES:
         result = transform_entity(
             spark,
             catalog=args.catalog,

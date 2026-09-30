@@ -203,3 +203,11 @@ def test_status_and_creation_rules() -> None:
     assert "final_status: unsupported value" in (
         validate_record("tickets", {**ticket, "final_status": "limbo"}, context).reasons
     )
+
+
+def test_malformed_source_line_is_quarantined_with_raw_text() -> None:
+    raw = {**dict.fromkeys(EVENT), "_corrupt_record": "not json"}
+    result = validate_record("ticket_events", raw, CONTEXT)
+    assert result.disposition is Disposition.QUARANTINED
+    assert result.reasons[0] == "record: malformed source line"
+    assert "not json" in result.raw_payload

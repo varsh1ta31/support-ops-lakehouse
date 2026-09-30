@@ -17,6 +17,8 @@ support-ops-generate = "support_ops.synthetic.cli:main"
 support-ops-bootstrap = "support_ops.platform.bootstrap:main"
 support-ops-batch-ingest = "support_ops.ingestion.batch:main"
 support-ops-silver = "support_ops.transformations.silver:main"
+support-ops-generate-events = "support_ops.synthetic.events:main"
+support-ops-stream-ingest = "support_ops.ingestion.streaming:main"
 
 [project.optional-dependencies]
 spark-test = ["delta-spark==4.0.0", "pyspark==4.0.0"]

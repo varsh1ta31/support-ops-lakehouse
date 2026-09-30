@@ -1,0 +1,53 @@
+resources:
+  jobs:
+    # Raw event ingestion is its own failure domain: Silver failures never stop it.
+    event_stream_ingestion:
+      name: support-ops-event-stream-ingestion
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: ingest_ticket_events
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-stream-ingest
+            parameters:
+              - --source
+              - /Volumes/${var.catalog}/raw/ticket_events
+              - --checkpoint-root
+              - /Volumes/${var.catalog}/ops/checkpoints/${bundle.target}
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl
+
+    # Demo producer: appends deterministic batch files to the stream source Volume.
+    event_producer:
+      name: support-ops-event-producer
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: produce_ticket_events
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-generate-events
+            parameters:
+              - --profile
+              - ${workspace.file_path}/config/generation/stream.toml
+              - --output
+              - /Volumes/${var.catalog}/raw/ticket_events
+              - --batches
+              - "4"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl

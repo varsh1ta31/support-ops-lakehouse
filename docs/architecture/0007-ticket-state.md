@@ -13,7 +13,7 @@ later Gold metrics and ML features.
 Order events by `(event_time, event_id)`; the ID breaks ties deterministically and repeated IDs
 apply once. Events after `as_of` are excluded. Recomputing from full history places late events
 in event-time order, so no late-event correction logic is needed here. Streaming watermarks and
-late-event classification remain Phase 3 work.
+late-event classification are defined in ADR 0009.
 
 A historical ticket is a snapshot taken at `closed_at`, or at `created_at` if still open. Events at
 or before that snapshot are already reflected and are skipped. Before `closed_at`, a resolved

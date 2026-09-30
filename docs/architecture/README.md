@@ -11,3 +11,4 @@ supersedes an old one instead of rewriting history.
 - [ADR 0006: Durable validation decisions before Silver writes](./0006-silver-persistence.md)
 - [ADR 0007: Ticket state as a deterministic fold over history](./0007-ticket-state.md)
 - [ADR 0008: Resolution SLA from the contract in force at ticket creation](./0008-contract-sla.md)
+- [ADR 0009: File-based event streaming into Bronze](./0009-event-streaming.md)

@@ -1,0 +1,13 @@
+# Streams new tickets for the demo batch profile's customers and products.
+number_of_customers = 100
+number_of_products = 6
+start = "2026-01-01T00:00:00Z"
+batch_interval_minutes = 15
+tickets_per_batch = 20
+lifecycle_batches = 16
+duplicate_rate = 0.02
+late_rate = 0.02
+late_delay_minutes = 180
+malformed_per_batch = 1
+invalid_per_batch = 1
+seed = 42
