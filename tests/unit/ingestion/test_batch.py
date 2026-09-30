@@ -12,10 +12,6 @@ class FakeFrame:
         self._count = count
         self._unique_count = count if unique_count is None else unique_count
         self.view_name: str | None = None
-        self.unpersisted = False
-
-    def cache(self) -> FakeFrame:
-        return self
 
     def dropDuplicates(self, columns: list[str]) -> FakeFrame:  # noqa: N802 - PySpark API
         assert columns == ["_record_hash"]
@@ -26,9 +22,6 @@ class FakeFrame:
 
     def createOrReplaceTempView(self, name: str) -> None:  # noqa: N802 - PySpark API
         self.view_name = name
-
-    def unpersist(self) -> None:
-        self.unpersisted = True
 
 
 class FakeCatalog:
@@ -102,7 +95,6 @@ def test_ingestion_merges_unique_hashes_and_reports_metrics(
     assert result.target_table == "support_dev.bronze.accounts"
     assert any(statement.startswith("MERGE INTO") for statement in spark.statements)
     assert spark.catalog.dropped[0].startswith("incoming_accounts_")
-    assert prepared.unpersisted
 
 
 @pytest.mark.parametrize("entity", ["unknown", "ticket_events"])

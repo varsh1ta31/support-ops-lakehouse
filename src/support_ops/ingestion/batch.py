@@ -147,8 +147,11 @@ def ingest_batch(
 
     target = qualified_bronze_table(catalog, entity)
     spark.sql(bronze_table_ddl(catalog, source))
-    prepared = _prepare_batch(spark, source, source_path, pipeline_run_id).cache()
-    deduplicated = prepared.dropDuplicates(["_record_hash"]).cache()
+    # Free Edition serverless compute does not support DataFrame persistence. The batch is read
+    # more than once for metrics and merge planning, which is preferable to requiring classic
+    # compute solely for caching.
+    prepared = _prepare_batch(spark, source, source_path, pipeline_run_id)
+    deduplicated = prepared.dropDuplicates(["_record_hash"])
     view_name = f"incoming_{entity}_{uuid.uuid4().hex}"
     view_created = False
     try:
@@ -167,8 +170,6 @@ def ingest_batch(
     finally:
         if view_created:
             spark.catalog.dropTempView(view_name)
-        deduplicated.unpersist()
-        prepared.unpersist()
 
     return BatchIngestionResult(
         entity=entity,
