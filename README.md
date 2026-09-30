@@ -8,8 +8,10 @@ budget below $5.
 
 ## Status
 
-The repository foundation is implemented. Synthetic data generation and Bronze ingestion are
-the next delivery slice.
+Synthetic data generation and Bronze batch ingestion are deployed and verified in Databricks
+Free Edition. The engine-neutral Silver validation layer is implemented and tested locally.
+Silver/quarantine persistence and quality metrics are implemented with a retry-safe staging layer.
+Next: ticket-state reconstruction and live Silver deployment validation.
 
 ## Documentation
 
@@ -37,9 +39,13 @@ Python 3.11 or 3.12 is recommended. Create an isolated environment and run the c
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[dev]'
+python -m pip install -e '.[dev,spark-test]'
 make check
 ```
+
+The full checks include local Spark/Delta integration tests and require Java 17 or newer
+(Java 21 is used in CI). The first integration run downloads Delta JVM dependencies. For a fast
+engine-neutral check without Java, install `.[dev]` and run `pytest tests/unit --no-cov`.
 
 Configuration is layered from `config/base.toml` and `config/<environment>.toml`. Select a
 logical environment with `SUPPORT_OPS_ENV=dev` or `SUPPORT_OPS_ENV=prod`; secrets are never part
@@ -106,6 +112,23 @@ remain strings in Bronze so malformed values are preserved for Silver validation
 also receives its ingestion time, source file, pipeline run ID, and deterministic content hash.
 
 Rerunning the job is safe: Delta `MERGE` inserts only previously unseen record hashes.
+
+## Run Silver validation and persistence
+
+After a successful Bronze batch job, run:
+
+```bash
+databricks bundle validate --target dev
+databricks bundle deploy --target dev
+databricks bundle run --target dev silver_transformations
+```
+
+The job validates products, accounts, contracts, then tickets; writes typed Silver rows and
+`ops.invalid_records`; and records one `ops.quality_metrics` row per entity and job run.
+Retries reuse durable decisions in `ops.silver_evaluations`. New runs process new Bronze snapshots.
+Accepted natural keys are insert-only: changed records with an existing key count as duplicates.
+Keep manual runs serialized with the scheduled job. See [the persistence decision](./docs/architecture/0006-silver-persistence.md)
+for recovery behavior, metric definitions, and the first-accepted record policy.
 
 ## Repository layout
 

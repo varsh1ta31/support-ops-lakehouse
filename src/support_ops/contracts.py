@@ -42,7 +42,13 @@ GOLD_TABLES = (
     "ticket_risk_scores",
     "ticket_investigations",
 )
-OPS_TABLES = ("invalid_records", "pipeline_runs", "quality_metrics", "streaming_metrics")
+OPS_TABLES = (
+    "invalid_records",
+    "pipeline_runs",
+    "quality_metrics",
+    "streaming_metrics",
+    "silver_evaluations",
+)
 
 
 def table(catalog: str, layer: Layer, name: str) -> TableRef:

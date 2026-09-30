@@ -12,7 +12,8 @@
 
 ## Phase 0 — Resolve contracts and scaffold the repository
 
-Status: complete locally; live bundle validation awaits Databricks workspace authentication.
+Status: complete; bundle deployment and Bronze validation are recorded in
+`docs/validation/bronze-ingestion.md`.
 
 Deliverables:
 
@@ -37,8 +38,8 @@ Exit gate:
 
 ## Phase 1 — Synthetic data and batch Bronze ingestion
 
-Status: in progress; deterministic data generation and Bronze batch ingestion are deployed and
-verified in Databricks Free Edition. Silver transformations remain.
+Status: complete; deterministic data generation and Bronze batch ingestion are deployed and
+verified in Databricks Free Edition. Silver transformations are tracked in Phase 2.
 
 Deliverables:
 
@@ -56,6 +57,18 @@ Exit gate:
 - Raw source values and provenance remain inspectable.
 
 ## Phase 2 — Silver entities, quality, and ticket state
+
+Status: in progress. Shared normalization/validation for all five source entities and the
+accepted/duplicate/quarantined result model are implemented and verified locally. Canonical
+quarantine rows preserve raw payloads and source metadata, with stable record IDs. See
+`docs/architecture/0005-silver-validation.md` for policies and limitations. Retry-safe Silver,
+quarantine, and quality-metric persistence (ADR 0006) passes local Spark 4.0/Delta 4.0
+integration tests covering replay, partial failure, and empty snapshots.
+
+Next tasks, in dependency order:
+
+1. Implement event ordering, ticket transitions, and historical state reconstruction.
+2. Select active contracts/SLA at the relevant timestamp and verify the live Silver job.
 
 Deliverables:
 
@@ -188,5 +201,4 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The first implementation slice will be Phase 0, followed by the deterministic reference-data
-generator from Phase 1.
+The next implementation slice is Phase 2 ticket-event ordering and ticket-state reconstruction.
