@@ -114,7 +114,15 @@ def process_batch(
             {"mode": "PERMISSIVE", "columnNameOfCorruptRecord": CORRUPT_COLUMN},
         ),
     )
-    malformed = f.col("_parsed").isNull() | f.col(f"_parsed.{CORRUPT_COLUMN}").isNotNull()
+    # The JSON parser ignores trailing content ('{}}' parses as '{}'), so a line must also be one
+    # braced object carrying at least one schema field to count as an event.
+    line = f.trim("value")
+    malformed = (
+        f.col("_parsed").isNull()
+        | f.col(f"_parsed.{CORRUPT_COLUMN}").isNotNull()
+        | ~(line.startswith("{") & line.endswith("}"))
+        | f.coalesce(*(f.col(f"_parsed.{name}") for name in BUSINESS_COLUMNS)).isNull()
+    )
     rows = parsed.select(
         *(
             f.when(malformed, f.lit(None).cast("string"))
@@ -134,9 +142,12 @@ def process_batch(
         f.current_timestamp().alias("_ingested_at"),
         "_source_file",
         f.lit(run_id).alias("_pipeline_run_id"),
+        # Events deduplicate by content. A malformed line has no event identity, so each file's
+        # copy is separate evidence; a replay rereads the same file and hashes identically.
         f.sha2(
             f.when(
-                f.col(CORRUPT_COLUMN).isNotNull(), f.concat(f.lit("corrupt:"), CORRUPT_COLUMN)
+                f.col(CORRUPT_COLUMN).isNotNull(),
+                f.concat_ws("\n", f.lit("corrupt"), "_source_file", CORRUPT_COLUMN),
             ).otherwise(f.to_json(f.struct(*BUSINESS_COLUMNS), {"ignoreNullFields": "false"})),
             256,
         ).alias("_record_hash"),

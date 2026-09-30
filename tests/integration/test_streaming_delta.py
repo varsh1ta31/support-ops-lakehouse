@@ -64,29 +64,53 @@ def test_stream_recovers_from_checkpoint_without_duplicates(
         )
 
     # Batch A: one file per microbatch.
-    write(source, 1, [line("e1", 0), line("e2", 5), line("e2", 5), "not json", ""])
+    write(
+        source,
+        1,
+        [
+            line("e1", 0),
+            line("e2", 5),
+            line("e2", 5),
+            "not json",
+            "",
+            "{}}",
+            line("x", 1) + " junk",
+        ],
+    )
     write(
         source,
         2,
-        [line("e3", 60), line("e1", 0), line("e1", 0, payload='{"changed": true}')],
+        [line("e3", 60), line("e1", 0), line("e1", 0, payload='{"changed": true}'), "not json"],
     )
     (source / ".events_000009.json.tmp").write_text("partial")
     assert run()["batches"] == 2
     first = metrics(spark)
     assert sorted(first) == [0, 1]
-    assert (first[0].rows_read, first[0].rows_written, first[0].duplicate_rows) == (4, 3, 1)
-    assert (first[0].malformed_rows, first[0].late_rows, first[0].watermark) == (1, 0, None)
+    assert (first[0].rows_read, first[0].rows_written, first[0].duplicate_rows) == (6, 5, 1)
+    assert (first[0].malformed_rows, first[0].late_rows, first[0].watermark) == (3, 0, None)
     assert first[0].max_event_time.astimezone(UTC) == T0 + timedelta(minutes=5)
     # The changed payload is new raw evidence; Silver decides event_id duplicates.
-    assert (first[1].rows_read, first[1].rows_written, first[1].duplicate_rows) == (3, 2, 1)
+    # Repeated garbage in a new file is a new malformed arrival, not a duplicate event.
+    assert (first[1].rows_read, first[1].rows_written, first[1].duplicate_rows) == (4, 3, 1)
+    assert first[1].malformed_rows == 1
     assert first[1].watermark.astimezone(UTC) == T0 - timedelta(minutes=25)
     assert first[1].batch_duration_ms > 0 and first[1].input_rows_per_second is not None
     bronze = spark.table("bronze.ticket_events")
-    assert bronze.count() == 5
-    corrupt = bronze.filter("_corrupt_record IS NOT NULL").collect()
-    assert [(row._corrupt_record, row.event_id) for row in corrupt] == [("not json", None)]
+    assert bronze.count() == 8
+    corrupt = (
+        bronze.filter("_corrupt_record IS NOT NULL")
+        .orderBy("_corrupt_record", "_source_file")
+        .collect()
+    )
+    assert [row._corrupt_record for row in corrupt] == [
+        "not json",
+        "not json",
+        line("x", 1) + " junk",
+        "{}}",
+    ]
+    assert {row.event_id for row in corrupt} == {None}
     assert corrupt[0]._source_file.endswith("events_000001.json")
-    assert bronze.filter("_pipeline_run_id = 'events_test/1'").count() == 2
+    assert bronze.filter("_pipeline_run_id = 'events_test/1'").count() == 3
 
     # Stop, add batch B, and fail once after its Bronze write but before its metrics row.
     write(
@@ -113,11 +137,11 @@ def test_stream_recovers_from_checkpoint_without_duplicates(
         patch.setattr(silver, "merge_insert", fail_metrics)
         with pytest.raises(RuntimeError, match="events_test failed"):
             run()
-    assert spark.table("bronze.ticket_events").count() == 9
+    assert spark.table("bronze.ticket_events").count() == 12
     assert 2 not in metrics(spark)
 
     assert run()["batches"] == 1
-    assert spark.table("bronze.ticket_events").count() == 9
+    assert spark.table("bronze.ticket_events").count() == 12
     replayed = metrics(spark)[2]
     assert (replayed.rows_read, replayed.rows_written, replayed.duplicate_rows) == (4, 4, 0)
     assert replayed.watermark.astimezone(UTC) == T0 + timedelta(minutes=30)
@@ -142,7 +166,7 @@ def test_stream_recovers_from_checkpoint_without_duplicates(
         pipeline_run_id="job-2",
         late_tolerance=timedelta(minutes=30),
     )
-    assert spark.table("bronze.ticket_events").count() == 9
+    assert spark.table("bronze.ticket_events").count() == 12
     assert metrics(spark)[2] == replayed
 
     result = silver.transform_entity(
@@ -152,13 +176,13 @@ def test_stream_recovers_from_checkpoint_without_duplicates(
         pipeline_run_id="stream-silver",
         now=datetime(2026, 6, 1, tzinfo=UTC),
     )
-    assert result["records_read"] == 9
+    assert result["records_read"] == 12
     quarantined = (
         spark.table("ops.invalid_records")
         .filter("pipeline_run_id = 'stream-silver' AND raw_payload LIKE '%not json%'")
         .collect()
     )
-    assert len(quarantined) == 1
+    assert len(quarantined) == 2
     assert quarantined[0].failure_reason.startswith("record: malformed source line")
 
 

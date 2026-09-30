@@ -31,14 +31,18 @@ event capture.
 ### Stream
 
 - **Source.** The text file source reads whole lines with an explicit parse schema
-  (`from_json`, `PERMISSIVE`). Every non-blank line lands in Bronze. Unparseable lines keep their raw
-  text in `_corrupt_record`, with null business fields. Business fields stay strings, as in batch
-  Bronze. Fields outside the schema are dropped.
+  (`from_json`, `PERMISSIVE`). Every non-blank line lands in Bronze. Business fields stay strings, as
+  in batch Bronze, and fields outside the schema are dropped. A line is malformed if the parser
+  flags it, if it is not one braced object, or if it carries no schema field. The parser ignores
+  trailing content, so `{}}` would otherwise become an all-null event. Malformed lines keep
+  their raw text in `_corrupt_record`, with null business fields.
 - **Trigger.** `availableNow` with `maxFilesPerTrigger` (default 1). Serverless compute supports
   only this trigger, so continuous ingestion means rerunning the job on a schedule against the
   same checkpoint at `<checkpoint_root>/<stream_name>`.
 - **Deduplication.** `foreachBatch` performs an insert-only `MERGE` on `_record_hash`, the same
   key as batch Bronze. Identical records are therefore stored once across microbatches and restarts.
+  A malformed line has no event identity, so its hash covers the source file and raw text. The
+  same garbage in two files is two arrivals, while a replay of one file stays idempotent.
   A redelivered event with a changed payload is new raw evidence. Silver's `event_id` rule
   accepts the first valid one and rejects the rest as duplicates.
 - **Event time and lateness.** The watermark for microbatch *k* is the highest event time seen in

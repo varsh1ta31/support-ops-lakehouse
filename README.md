@@ -14,7 +14,8 @@ Silver/quarantine persistence and quality metrics are implemented with a retry-s
 Ticket state is reconstructed from historical tickets plus ordered events, including point-in-time
 state, with resolution-SLA fields from the contract in force at ticket creation. Ticket events
 stream from incremental files into Bronze with checkpointing, deduplication, late-event labelling,
-and malformed-line capture. Next: live Silver and streaming deployment validation.
+and malformed-line capture. Silver and streaming are verified live in Free Edition
+([evidence](./docs/validation/silver-and-streaming.md)). Next: Gold operational data products.
 
 ## Documentation
 

@@ -58,8 +58,10 @@ Exit gate:
 
 ## Phase 2 — Silver entities, quality, and ticket state
 
-Status: in progress. Shared normalization/validation for all five source entities and the
-accepted/duplicate/quarantined result model are implemented and verified locally. Canonical
+Status: complete; the live Silver job is verified in Databricks Free Edition
+(`docs/validation/silver-and-streaming.md`). Shared normalization/validation for all five
+source entities and the accepted/duplicate/quarantined result model are implemented and verified
+locally. Canonical
 quarantine rows preserve raw payloads and source metadata, with stable record IDs. See
 `docs/architecture/0005-silver-validation.md` for policies and limitations. Retry-safe Silver,
 quarantine, and quality-metric persistence (ADR 0006) passes local Spark 4.0/Delta 4.0
@@ -67,9 +69,6 @@ integration tests covering replay, partial failure, and empty snapshots. Event o
 transitions, and historical/point-in-time state reconstruction are implemented and verified
 locally against Delta (ADR 0007). Ticket state carries resolution-SLA fields from the contract in
 force at ticket creation for the current priority (ADR 0008), verified locally against Delta.
-
-Next task: deploy and verify the live Silver job, including `silver.ticket_state` and its SLA
-fields, in Databricks Free Edition.
 
 Deliverables:
 
@@ -89,16 +88,14 @@ Exit gate:
 
 ## Phase 3 — File-based streaming ingestion
 
-Status: implemented and verified locally (ADR 0009). The deterministic event-file producer, the
-`availableNow` Structured Streaming Bronze job, the per-microbatch metrics, and Silver quarantine of
-malformed lines pass local Spark 4.0/Delta 4.0 tests. Those tests cover checkpoint restart,
+Status: complete (ADR 0009). The deterministic event-file producer, the `availableNow`
+Structured Streaming Bronze job, the per-microbatch metrics, and Silver quarantine of malformed
+lines are verified live in Databricks Free Edition. That covers checkpoint restart, duplicates, late
+labelling, and malformed capture (`docs/validation/silver-and-streaming.md`). They also pass local
+Spark 4.0/Delta 4.0 tests. Those tests cover checkpoint restart,
 a crash between the Bronze and metrics writes, cross-microbatch duplicates, late labelling
 against the watermark, and future-dated events. The Silver job now validates streamed events
 before rebuilding ticket state.
-
-Next task: deploy both streaming jobs and the updated Silver job to Databricks Free Edition. Run
-the producer and stream twice to show live checkpoint recovery, and record the evidence
-alongside the Phase 2 live verification.
 
 Deliverables:
 
@@ -213,5 +210,4 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The next implementation slice is live verification of the Phase 2 Silver and Phase 3 streaming jobs,
-then Phase 4 Gold data products.
+The next implementation slice is Phase 4 Gold operational data products.
