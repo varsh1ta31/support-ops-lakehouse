@@ -1,2 +1,24 @@
-# Transformation jobs are added after Silver and Gold pipelines exist.
-resources: {}
+resources:
+  jobs:
+    silver_transformations:
+      name: support-ops-silver-transformations
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: transform_silver
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-silver
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl

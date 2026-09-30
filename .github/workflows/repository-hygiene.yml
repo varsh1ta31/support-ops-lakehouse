@@ -47,8 +47,13 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - name: Install project
-        run: python -m pip install -e '.[dev]'
+        run: python -m pip install -e '.[dev,spark-test]'
 
       - name: Lint and type-check
         run: make lint

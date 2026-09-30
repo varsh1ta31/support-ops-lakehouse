@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "support-ops-lakehouse"
-version = "0.1.0"
+version = "0.2.0"
 description = "Support operations lakehouse, SLA-risk prediction, and grounded AI triage"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -16,8 +16,10 @@ dependencies = []
 support-ops-generate = "support_ops.synthetic.cli:main"
 support-ops-bootstrap = "support_ops.platform.bootstrap:main"
 support-ops-batch-ingest = "support_ops.ingestion.batch:main"
+support-ops-silver = "support_ops.transformations.silver:main"
 
 [project.optional-dependencies]
+spark-test = ["delta-spark==4.0.0", "pyspark==4.0.0"]
 dev = [
   "build>=1.2,<2",
   "mypy>=1.15,<2",
@@ -33,6 +35,7 @@ packages = ["src/support_ops"]
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers --cov=support_ops --cov-report=term-missing"
 testpaths = ["tests"]
+markers = ["spark: requires local Spark, Delta Lake, and Java 17 or newer"]
 
 [tool.coverage.run]
 branch = true
