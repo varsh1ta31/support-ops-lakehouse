@@ -6,14 +6,14 @@ import hashlib
 import json
 import os
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from support_ops.schemas import INGESTION_METADATA, SOURCE_SCHEMAS
-from support_ops.transformations import silver
+from support_ops.transformations import silver, ticket_state
 from tests.unit.quality.test_validation import generated
 
 pytestmark = pytest.mark.spark
@@ -172,5 +172,152 @@ def test_invalid_arguments_and_cli(spark: Any, monkeypatch: pytest.MonkeyPatch) 
         return {"entity": kwargs["entity"]}
 
     monkeypatch.setattr(silver, "transform_entity", transform)
+
+    def build(*args: Any, **kwargs: Any) -> dict[str, object]:
+        called.append("state")
+        return {}
+
+    monkeypatch.setattr(ticket_state, "build_ticket_state", build)
     assert silver.main(["--catalog", "spark_catalog", "--pipeline-run-id", "cli"]) == 0
-    assert called == list(silver.BATCH_ENTITIES)
+    assert called == [*silver.BATCH_ENTITIES, "state"]
+
+
+def silver_events(spark: Any, rows: list[dict[str, object]]) -> None:
+    metadata = {
+        "_ingested_at": datetime(2026, 1, 1, tzinfo=UTC),
+        "_source_file": "landing/events.json",
+        "_pipeline_run_id": "bronze-run",
+        "_record_hash": "h",
+        "_validated_at": datetime(2026, 1, 1, tzinfo=UTC),
+        "_validation_run_id": "silver-run",
+    }
+    table = spark.table("silver.ticket_events")
+    full = [
+        {
+            name: {**metadata, **row, "_record_hash": row["event_id"]}.get(name)
+            for name in table.columns
+        }
+        for row in rows
+    ]
+    spark.createDataFrame(full, table.schema).write.insertInto("silver.ticket_events")
+
+
+def test_ticket_state_reconstructs_known_sequence(spark: Any) -> None:
+    silver.create_tables(spark, "spark_catalog", "ticket_events")
+    # Collected timestamps are naive local times; astimezone interprets them correctly.
+    ticket = (
+        spark.table("silver.tickets")
+        .filter("final_status = 'resolved'")
+        .orderBy("ticket_id")
+        .first()
+        .asDict()
+    )
+    start: datetime = ticket["created_at"].astimezone(UTC) + timedelta(days=400)
+    common = {"customer_id": ticket["customer_id"], "product_id": ticket["product_id"]}
+
+    def at(minutes: int) -> datetime:
+        return start + timedelta(minutes=minutes)
+
+    silver_events(
+        spark,
+        [
+            {
+                **common,
+                "event_id": "s1",
+                "ticket_id": ticket["ticket_id"],
+                "event_type": "ticket_reopened",
+                "event_time": at(1),
+            },
+            {
+                **common,
+                "event_id": "s3",
+                "ticket_id": ticket["ticket_id"],
+                "event_type": "priority_changed",
+                "event_time": at(3),
+                "new_value": "P1",
+            },
+            {
+                **common,
+                "event_id": "n1",
+                "ticket_id": "EVENT-ONLY",
+                "event_type": "ticket_created",
+                "event_time": at(0),
+                "new_value": "P2",
+            },
+            {
+                **common,
+                "event_id": "n2",
+                "ticket_id": "EVENT-ONLY",
+                "event_type": "agent_replied",
+                "event_time": at(5),
+            },
+            {
+                **common,
+                "event_id": "x1",
+                "ticket_id": "ORPHAN",
+                "event_type": "agent_replied",
+                "event_time": at(5),
+            },
+            {
+                **common,
+                "event_id": "f1",
+                "ticket_id": "EVENT-ONLY",
+                "event_type": "ticket_resolved",
+                "event_time": at(500),
+            },
+        ],
+    )
+    # Arrives after later events but must be ordered by event time.
+    silver_events(
+        spark,
+        [
+            {
+                **common,
+                "event_id": "s2",
+                "ticket_id": ticket["ticket_id"],
+                "event_type": "agent_assigned",
+                "event_time": at(2),
+                "agent_id": "late-agent",
+            }
+        ],
+    )
+    expected_tickets = spark.table("silver.tickets").count() + 1
+    summary = ticket_state.build_ticket_state(
+        spark, catalog="spark_catalog", pipeline_run_id="state-1", as_of=at(60)
+    )
+    assert summary["tickets"] == expected_tickets
+    rows = {row.ticket_id: row for row in spark.table("silver.ticket_state").collect()}
+    assert len(rows) == expected_tickets and "ORPHAN" not in rows
+    reopened = rows[ticket["ticket_id"]]
+    assert (reopened.status, reopened.priority, reopened.assigned_agent) == (
+        "open",
+        "P1",
+        "late-agent",
+    )
+    assert reopened.reopen_count == 1 and reopened.resolved_at is None
+    assert reopened.last_updated_at.astimezone(UTC) == at(3)
+    created = rows["EVENT-ONLY"]
+    assert (created.status, created.message_count, created.minutes_open) == ("open", 1, 60)
+    assert created.created_at.astimezone(UTC) == at(0)
+    assert created.state_as_of.astimezone(UTC) == at(60)
+    contracts = {
+        (row.customer_id, row.priority): row for row in spark.table("silver.contracts").collect()
+    }
+    # The priority change re-targets the SLA; the clock still starts at ticket creation.
+    terms = contracts[(ticket["customer_id"], "P1")]
+    assert (reopened.contract_id, reopened.support_tier) == (terms.contract_id, terms.support_tier)
+    assert reopened.resolution_sla_minutes == terms.resolution_sla_minutes
+    deadline = ticket["created_at"].astimezone(UTC) + timedelta(
+        minutes=terms.resolution_sla_minutes
+    )
+    assert reopened.sla_deadline.astimezone(UTC) == deadline
+    assert reopened.minutes_to_sla == (deadline - at(60)).total_seconds() // 60 < 0
+    terms = contracts[(ticket["customer_id"], "P2")]
+    assert created.contract_id == terms.contract_id
+    assert created.minutes_to_sla == terms.resolution_sla_minutes - 60
+    assert summary["without_sla"] == 0
+    again = ticket_state.build_ticket_state(
+        spark, catalog="spark_catalog", pipeline_run_id="state-1", as_of=at(60)
+    )
+    assert again == summary
+    assert spark.table("silver.ticket_state").count() == expected_tickets

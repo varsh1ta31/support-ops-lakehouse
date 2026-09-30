@@ -63,12 +63,13 @@ accepted/duplicate/quarantined result model are implemented and verified locally
 quarantine rows preserve raw payloads and source metadata, with stable record IDs. See
 `docs/architecture/0005-silver-validation.md` for policies and limitations. Retry-safe Silver,
 quarantine, and quality-metric persistence (ADR 0006) passes local Spark 4.0/Delta 4.0
-integration tests covering replay, partial failure, and empty snapshots.
+integration tests covering replay, partial failure, and empty snapshots. Event ordering, ticket
+transitions, and historical/point-in-time state reconstruction are implemented and verified
+locally against Delta (ADR 0007). Ticket state carries resolution-SLA fields from the contract in
+force at ticket creation for the current priority (ADR 0008), verified locally against Delta.
 
-Next tasks, in dependency order:
-
-1. Implement event ordering, ticket transitions, and historical state reconstruction.
-2. Select active contracts/SLA at the relevant timestamp and verify the live Silver job.
+Next task: deploy and verify the live Silver job, including `silver.ticket_state` and its SLA
+fields, in Databricks Free Edition.
 
 Deliverables:
 
@@ -201,4 +202,4 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The next implementation slice is Phase 2 ticket-event ordering and ticket-state reconstruction.
+The next implementation slice is Phase 2 live Silver job verification, then Phase 3 streaming.

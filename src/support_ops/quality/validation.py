@@ -25,6 +25,8 @@ EVENT_TYPES = frozenset(
         "ticket_reopened",
     ]
 )
+ACTIVE_STATUSES = frozenset(["open", "in_progress", "pending_customer"])
+STATUSES = ACTIVE_STATUSES | {"resolved", "closed"}
 KEYS = {
     "tickets": "ticket_id",
     "ticket_events": "event_id",
@@ -171,6 +173,10 @@ def validate_record(
         and record.get("product_id") not in context.product_ids
     ):
         reasons.append("product_id: unknown product")
+    if entity == "tickets" and isinstance(record.get("final_status"), str):
+        record["final_status"] = str(record["final_status"]).lower()
+        if record["final_status"] not in STATUSES:
+            reasons.append("final_status: unsupported value")
     if entity == "ticket_events":
         event_type = record.get("event_type")
         if isinstance(event_type, str):
@@ -184,12 +190,18 @@ def validate_record(
                     raise ValueError("expected JSON object")
             except ValueError:
                 reasons.append("payload: invalid JSON object")
-        if record.get("event_type") == "priority_changed":
+        if record.get("event_type") in ("priority_changed", "ticket_created"):
             priority = str(record.get("new_value")).upper()
             if priority not in ENUMS["priority"]:
                 reasons.append("new_value: invalid priority")
             else:
                 record["new_value"] = priority
+        if record.get("event_type") == "status_changed":
+            status = str(record.get("new_value")).lower()
+            if status not in STATUSES:
+                reasons.append("new_value: invalid status")
+            else:
+                record["new_value"] = status
 
     for name in ("annual_contract_value", "response_sla_minutes", "resolution_sla_minutes"):
         number = record.get(name)

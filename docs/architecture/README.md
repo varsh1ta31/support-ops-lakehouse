@@ -9,3 +9,5 @@ supersedes an old one instead of rewriting history.
 - [ADR 0004: Unity Catalog Volume namespace](./0004-unity-catalog-volumes.md)
 - [ADR 0005: Engine-neutral Silver validation](./0005-silver-validation.md)
 - [ADR 0006: Durable validation decisions before Silver writes](./0006-silver-persistence.md)
+- [ADR 0007: Ticket state as a deterministic fold over history](./0007-ticket-state.md)
+- [ADR 0008: Resolution SLA from the contract in force at ticket creation](./0008-contract-sla.md)

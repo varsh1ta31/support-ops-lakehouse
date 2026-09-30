@@ -11,7 +11,9 @@ budget below $5.
 Synthetic data generation and Bronze batch ingestion are deployed and verified in Databricks
 Free Edition. The engine-neutral Silver validation layer is implemented and tested locally.
 Silver/quarantine persistence and quality metrics are implemented with a retry-safe staging layer.
-Next: ticket-state reconstruction and live Silver deployment validation.
+Ticket state is reconstructed from historical tickets plus ordered events, including point-in-time
+state, with resolution-SLA fields from the contract in force at ticket creation. Next: live
+Silver deployment validation.
 
 ## Documentation
 
@@ -124,7 +126,10 @@ databricks bundle run --target dev silver_transformations
 ```
 
 The job validates products, accounts, contracts, then tickets; writes typed Silver rows and
-`ops.invalid_records`; and records one `ops.quality_metrics` row per entity and job run.
+`ops.invalid_records`; and records one `ops.quality_metrics` row per entity and job run. It then
+rebuilds `silver.ticket_state` as of the run start, including SLA deadline and minutes remaining
+(see [ticket state](./docs/architecture/0007-ticket-state.md) and
+[SLA selection](./docs/architecture/0008-contract-sla.md)).
 Retries reuse durable decisions in `ops.silver_evaluations`. New runs process new Bronze snapshots.
 Accepted natural keys are insert-only: changed records with an existing key count as duplicates.
 Keep manual runs serialized with the scheduled job. See [the persistence decision](./docs/architecture/0006-silver-persistence.md)

@@ -182,3 +182,24 @@ def test_invalid_caller_arguments() -> None:
         result.quarantine_record(pipeline_run_id=" ", detected_at=NOW)
     with pytest.raises(ValueError, match="timezone-aware"):
         result.quarantine_record(pipeline_run_id="r", detected_at=datetime(2026, 1, 1))
+
+
+def test_status_and_creation_rules() -> None:
+    created = {**EVENT, "event_type": "ticket_created", "new_value": "p1"}
+    assert validate_record("ticket_events", created, CONTEXT).record["new_value"] == "P1"
+    assert "new_value: invalid priority" in (
+        validate_record("ticket_events", {**created, "new_value": None}, CONTEXT).reasons
+    )
+    changed = {**EVENT, "event_type": "status_changed", "new_value": " Pending_Customer "}
+    assert validate_record("ticket_events", changed, CONTEXT).record["new_value"] == (
+        "pending_customer"
+    )
+    assert "new_value: invalid status" in (
+        validate_record("ticket_events", {**changed, "new_value": "limbo"}, CONTEXT).reasons
+    )
+    records, context = generated()
+    ticket = {**records["tickets"][0], "final_status": "RESOLVED"}
+    assert validate_record("tickets", ticket, context).record["final_status"] == "resolved"
+    assert "final_status: unsupported value" in (
+        validate_record("tickets", {**ticket, "final_status": "limbo"}, context).reasons
+    )

@@ -336,4 +336,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             future_tolerance=timedelta(minutes=args.future_tolerance_minutes),
         )
         print(json.dumps(result, default=_json_scalar, sort_keys=True))
+    from support_ops.transformations.ticket_state import build_ticket_state
+
+    state = build_ticket_state(
+        spark, catalog=args.catalog, pipeline_run_id=args.pipeline_run_id, as_of=now
+    )
+    print(json.dumps(state, default=_json_scalar, sort_keys=True))
     return 0
