@@ -1,0 +1,83 @@
+resources:
+  jobs:
+    gold_support_operations:
+      name: support-ops-gold-support-operations
+      max_concurrent_runs: 1
+      parameters:
+        - name: hour
+          default: ""
+      tasks:
+        - task_key: aggregate_hour
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-gold
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+              - --hour
+              - "{{job.parameters.hour}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl
+    gold_customer_health:
+      name: support-ops-gold-customer-health
+      max_concurrent_runs: 1
+      parameters:
+        - name: as_of
+          default: ""
+      tasks:
+        - task_key: aggregate_customer_health
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-customer-health
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+              - --as-of
+              - "{{job.parameters.as_of}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl
+    gold_incident_signals:
+      name: support-ops-gold-incident-signals
+      max_concurrent_runs: 1
+      parameters:
+        - name: hour
+          default: ""
+      tasks:
+        - task_key: detect_incidents
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-incident-signals
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+              - --hour
+              - "{{job.parameters.hour}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl

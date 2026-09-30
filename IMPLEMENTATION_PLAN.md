@@ -115,6 +115,13 @@ Exit gate:
 
 ## Phase 4 — Gold operational data products
 
+Status: in progress. The first slice implements hourly `gold.support_operations`, with
+point-in-time reconstruction, explicit metric contracts, atomic per-hour replacement, and a
+parameterized bundle job (ADR 0010). Customer health snapshots (ADR 0011) and incident signals
+with a seven-day matching-hour baseline (ADR 0012) are also implemented. All three Gold jobs are
+deployed and verified in the dev workspace (`docs/validation/gold-live.md`). The full local suite
+passes 145 tests with 95.59% coverage. Point-in-time ticket feature snapshots remain.
+
 Deliverables:
 
 - Hourly support-operations metrics
@@ -210,4 +217,4 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The next implementation slice is Phase 4 Gold operational data products.
+The next implementation slice is Phase 4 point-in-time ticket feature snapshots.

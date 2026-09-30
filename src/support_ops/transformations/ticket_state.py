@@ -349,14 +349,8 @@ def sla_row(
     return fields
 
 
-def build_ticket_state(
-    spark: Any, *, catalog: str, pipeline_run_id: str, as_of: datetime
-) -> dict[str, object]:
-    """Recompute ``silver.ticket_state`` from full Silver history in one atomic overwrite.
-
-    The result is a pure function of Silver tickets, events, contracts, and ``as_of``, so a
-    retry rewrites identical state for the same inputs. Single writer required.
-    """
+def ticket_state_frame(spark: Any, *, catalog: str, as_of: datetime) -> Any:
+    """Reconstruct a lazy point-in-time frame without changing the current-state table."""
     from pyspark.sql import functions as f
 
     from support_ops.transformations.silver import create_tables, qualified
@@ -364,12 +358,6 @@ def build_ticket_state(
     _aware(as_of)
     for entity in ("tickets", "ticket_events", "contracts"):
         create_tables(spark, catalog, entity)
-    target = qualified(catalog, "silver", "ticket_state")
-    columns = [f"`{name}` {kind}" for name, kind in TABLE_COLUMNS]
-    spark.sql(
-        f"CREATE TABLE IF NOT EXISTS {target} "
-        f"({', '.join([*columns, '_state_run_id STRING'])}) USING DELTA"
-    )
     micros = {name: f.unix_micros(f.col(name)).alias(name) for name in TICKET_TIMESTAMPS}
     tickets = spark.table(qualified(catalog, "silver", "tickets")).select(
         "ticket_id",
@@ -446,8 +434,34 @@ def build_ticket_state(
                 for struct, columns in (("_state", STATE_COLUMNS), ("_sla", SLA_COLUMNS))
                 for name, kind in columns
             ),
-            f.lit(pipeline_run_id).alias("_state_run_id"),
         )
+    )
+    return frame
+
+
+def build_ticket_state(
+    spark: Any, *, catalog: str, pipeline_run_id: str, as_of: datetime
+) -> dict[str, object]:
+    """Recompute ``silver.ticket_state`` from full Silver history in one atomic overwrite.
+
+    The result is a pure function of Silver tickets, events, contracts, and ``as_of``, so a
+    retry rewrites identical state for the same inputs. Single writer required.
+    """
+    from pyspark.sql import functions as f
+
+    from support_ops.transformations.silver import create_tables, qualified
+
+    _aware(as_of)
+    for entity in ("tickets", "ticket_events", "contracts"):
+        create_tables(spark, catalog, entity)
+    target = qualified(catalog, "silver", "ticket_state")
+    columns = [f"`{name}` {kind}" for name, kind in TABLE_COLUMNS]
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS {target} "
+        f"({', '.join([*columns, '_state_run_id STRING'])}) USING DELTA"
+    )
+    frame = ticket_state_frame(spark, catalog=catalog, as_of=as_of).withColumn(
+        "_state_run_id", f.lit(pipeline_run_id)
     )
     view = f"ticket_state_{uuid.uuid4().hex}"
     frame.createOrReplaceTempView(view)

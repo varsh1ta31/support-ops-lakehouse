@@ -12,3 +12,6 @@ supersedes an old one instead of rewriting history.
 - [ADR 0007: Ticket state as a deterministic fold over history](./0007-ticket-state.md)
 - [ADR 0008: Resolution SLA from the contract in force at ticket creation](./0008-contract-sla.md)
 - [ADR 0009: File-based event streaming into Bronze](./0009-event-streaming.md)
+- [ADR 0010: Hourly support operations](./0010-hourly-support-operations.md)
+- [ADR 0011: Customer support health snapshots](./0011-customer-support-health.md)
+- [ADR 0012: Product incident signals](./0012-product-incident-signals.md)

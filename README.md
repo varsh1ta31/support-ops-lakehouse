@@ -15,7 +15,9 @@ Ticket state is reconstructed from historical tickets plus ordered events, inclu
 state, with resolution-SLA fields from the contract in force at ticket creation. Ticket events
 stream from incremental files into Bronze with checkpointing, deduplication, late-event labelling,
 and malformed-line capture. Silver and streaming are verified live in Free Edition
-([evidence](./docs/validation/silver-and-streaming.md)). Next: Gold operational data products.
+([evidence](./docs/validation/silver-and-streaming.md)). Hourly Gold support metrics,
+customer health snapshots, and product incident signals are deployed and verified in dev
+([evidence](./docs/validation/gold-live.md)). Next: point-in-time ticket feature snapshots.
 
 ## Documentation
 
@@ -153,6 +155,64 @@ Locally, `support-ops-generate-events --profile config/generation/stream.toml --
 --batches 4` writes the same files. Per-microbatch counts, watermarks, and rates are in
 `ops.streaming_metrics`. See [the streaming decision](./docs/architecture/0009-event-streaming.md)
 for duplicate, late, and malformed handling and for checkpoint resets.
+
+## Run hourly Gold support metrics
+
+After bootstrap and Silver complete, build and deploy the updated wheel, then supply an explicit
+UTC hour to aggregate (the interval includes its start and excludes the next hour):
+
+```bash
+python -m build --wheel
+databricks bundle validate --target dev
+databricks bundle deploy --target dev
+databricks bundle run --target dev gold_support_operations --params hour=2026-01-01T12:00:00Z
+```
+
+The output is `gold.support_operations`, grouped by hour, product, contract support tier, and
+customer segment. It includes creations, resolutions, end-of-hour backlog, priority counts,
+median resolution time, and SLA/escalation/reopen rates. Historical metrics reconstruct state
+from Silver history. Rerunning an hour atomically replaces its rows, including stale groups;
+other hours are preserved. Replay affected hours after late events arrive. See
+[metric definitions and limitations](./docs/architecture/0010-hourly-support-operations.md).
+The job is unscheduled; its dev workspace run is recorded in the
+[Gold live validation](./docs/validation/gold-live.md).
+[Local verification evidence](./docs/validation/gold-support-operations.md) records the fixture
+results and full regression checks.
+
+## Run customer support health
+
+After Silver finishes, provide the UTC snapshot hour:
+
+```bash
+databricks bundle run --target dev gold_customer_health --params as_of=2026-01-01T12:00:00Z
+```
+
+`gold.customer_support_health` contains one row per accepted account at that scoring point.
+It reports active backlog, 30-day ticket volume, 90-day breach/escalation/reopen rates, and mean
+resolution time. Rebuilding an `as_of` replaces that complete snapshot and leaves neighboring
+snapshots intact. See [metric contracts and limitations](./docs/architecture/0011-customer-support-health.md).
+The job is unscheduled; its dev workspace run is recorded in the
+[Gold live validation](./docs/validation/gold-live.md).
+[Local verification evidence](./docs/validation/customer-support-health.md) records the
+fixture and regression results.
+
+## Run product incident signals
+
+After Silver finishes, supply the UTC hour to evaluate:
+
+```bash
+databricks bundle run --target dev gold_incident_signals --params hour=2026-01-01T12:00:00Z
+```
+
+`gold.incident_signals` reports created-ticket volume, affected customers, P1 tickets,
+escalations, a mean of the seven previous matching UTC hours, and the deviation. The signal
+requires at least five tickets, three customers, and double the baseline. Rebuilding an hour
+replaces all its product rows while preserving other hours. See
+[baseline and signal definitions](./docs/architecture/0012-product-incident-signals.md).
+The job is unscheduled; its dev workspace run is recorded in the
+[Gold live validation](./docs/validation/gold-live.md).
+[Local verification evidence](./docs/validation/product-incident-signals.md) records the
+fixture and regression results.
 
 ## Repository layout
 
