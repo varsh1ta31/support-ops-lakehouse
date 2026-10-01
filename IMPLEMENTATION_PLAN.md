@@ -167,10 +167,12 @@ Exit gate:
 ## Phase 6 — SLA-risk ML lifecycle
 
 Status: in progress. `ml.training_dataset` joins earlier Gold features to later Silver outcomes
-(ADR 0015). Historical feature backfill (ADR 0016) is deployed and verified in dev; it supplies
-9,904 point-in-time feature rows and 8,433 labeled examples across nonempty chronological
-train, validation, and test periods (`docs/validation/historical-backfill.md`). Fitting and
-comparing the two candidate models is next.
+(ADR 0015). Historical feature backfill (ADR 0016) supplies 9,904 point-in-time feature rows
+and 8,433 labeled examples across chronological train, validation, and test periods. Both model
+candidates are trained and tracked in MLflow (ADR 0017), but the validation-selected candidate
+failed the out-of-time acceptance gate (`docs/validation/model-training.md`). The next dependency
+is a synthetic dataset with a documented, learnable risk pattern; registration and batch scoring
+remain pending until an acceptable candidate exists.
 
 Deliverables:
 
@@ -239,6 +241,6 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The next implementation slice is Phase 6 model training and evaluation. Keep the
+The next implementation slice is Phase 6 synthetic risk-signal design and retraining. Keep the
 [guided demo](./docs/demo/README.md) current as each later product is delivered; finish and
 validate the dashboard in Phase 8.

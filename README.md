@@ -22,7 +22,9 @@ deployed and verified in dev ([evidence](./docs/validation/ticket-features.md)).
 The [Spark performance experiment](./docs/validation/performance-results.md) is also deployed
 and measured in dev. Phase 6 historical features and the leakage-safe training dataset are
 deployed and verified with nonempty chronological splits
-([evidence](./docs/validation/historical-backfill.md)); model training is next.
+([evidence](./docs/validation/historical-backfill.md)). Both Phase 6 model candidates are
+[trained and evaluated in MLflow](./docs/validation/model-training.md), but the acceptance gate
+rejected deployment because the current synthetic labels contain little predictable signal.
 
 ## Documentation
 
@@ -260,6 +262,17 @@ ticket events begin. The training job uses only features visible at scoring and 
 observed later. Unresolved, reopened, and already overdue tickets are excluded. The dev dataset
 has 6,293 train, 735 validation, and 1,405 test tickets; see the
 [validation note](./docs/validation/historical-backfill.md).
+
+## Compare SLA-risk models
+
+```bash
+databricks bundle run --target dev ml_train_models --params label_as_of=2026-09-30T00:00:00Z
+```
+
+The job fits logistic regression and a gradient-boosted tree, logs each complete model pipeline
+and evaluation to MLflow, and chooses a candidate using validation PR-AUC. Test performance is
+an acceptance gate. The current dev data fails that gate, so no model is registered or scored;
+see the [measured results](./docs/validation/model-training.md).
 
 ## Repository layout
 

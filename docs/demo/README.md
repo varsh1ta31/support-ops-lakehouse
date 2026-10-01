@@ -6,9 +6,9 @@ and four Gold products. Risk scoring and AI investigation briefs are planned lat
 Databricks dashboard is now an explicit Phase 8 deliverable; until then, use the workspace pages
 and queries below to follow the data path.
 The [performance experiment](../validation/performance-results.md) is also complete.
-The historical feature backfill now supports nonempty chronological training, validation, and
-test cohorts; see the [backfill validation](../validation/historical-backfill.md). Model fitting is
-the next Phase 6 slice.
+The historical feature backfill supports nonempty chronological training, validation, and test
+cohorts. Both candidates are visible in MLflow, but the current synthetic labels do not yield an
+acceptable risk model; see the [model evaluation](../validation/model-training.md).
 
 ```mermaid
 flowchart LR
@@ -105,6 +105,13 @@ this table to see that the features were recorded earlier, before the outcome wa
 `support_dev.bronze.ticket_events` in Catalog Explorer. Silver is validated, ordered state;
 Bronze is the retained raw input. For historical scoring points, the feature job reconstructs
 state from Silver history rather than reading today's `silver.ticket_state` directly.
+
+**6. Inspect the ML experiment.** In AI/ML → Experiments, open
+`/Users/varshitaravi@yahoo.com/support-ops-support_dev-sla-risk`. Compare validation and test
+PR-AUC for the logistic baseline and gradient-boosted tree. The tree's latest run is tagged
+`deployment_decision=rejected`: it looked better on validation but fell below the test-period
+breach prevalence. Open its `training_manifest.json` to see the exact feature list, time ranges,
+and dataset version. This is why the project does not yet display live ticket risk scores.
 
 ## What the final demo will add
 
