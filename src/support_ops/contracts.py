@@ -48,6 +48,7 @@ OPS_TABLES = (
     "quality_metrics",
     "streaming_metrics",
     "silver_evaluations",
+    "spark_performance_runs",
 )
 
 

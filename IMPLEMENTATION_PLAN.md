@@ -115,12 +115,15 @@ Exit gate:
 
 ## Phase 4 — Gold operational data products
 
-Status: in progress. The first slice implements hourly `gold.support_operations`, with
+Status: complete. The first slice implements hourly `gold.support_operations`, with
 point-in-time reconstruction, explicit metric contracts, atomic per-hour replacement, and a
 parameterized bundle job (ADR 0010). Customer health snapshots (ADR 0011) and incident signals
 with a seven-day matching-hour baseline (ADR 0012) are also implemented. All three Gold jobs are
 deployed and verified in the dev workspace (`docs/validation/gold-live.md`). The full local suite
-passes 145 tests with 95.59% coverage. Point-in-time ticket feature snapshots remain.
+passed 145 tests with 95.59% coverage before the feature slice. Point-in-time ticket feature
+snapshots are implemented (ADR 0013), deployed and verified in dev
+(`docs/validation/ticket-features.md`). A Spark/Delta fixture covers historical boundaries and
+replay; its local run needs Java, which is unavailable in the current environment.
 
 Deliverables:
 
@@ -142,6 +145,12 @@ Exit gate:
 - Gold writes are idempotent at their declared grains.
 
 ## Phase 5 — Spark performance experiment
+
+Status: complete. The one-million-event dev benchmark compared four join plans in forward and
+reverse order; it measured severe key skew and found the serverless default broadcast plan about
+twice as fast as a forced sort-merge join. See `docs/validation/performance-results.md` and
+ADR 0014. Serverless does not expose task/shuffle/spill counters to this Python runner or allow
+an AQE-off configuration.
 
 Deliverables:
 
@@ -199,6 +208,10 @@ Deliverables:
 - GitHub Actions for lint, tests, and bundle validation
 - Controlled `dev` and `prod` bundle targets and deployment workflow
 - Cost ledger and cleanup instructions
+- Databricks-native demo dashboard for backlog, SLA trends, incident signals, customer health,
+  ticket risk, and investigation briefs as their tables become available
+- Guided, non-engineer walkthrough linking each dashboard result to its Gold table, Silver state,
+  Bronze source, job run, and quality/monitoring evidence
 
 Exit gate:
 
@@ -206,6 +219,9 @@ Exit gate:
 - A deliberate failure is observable, scoped, and recoverable.
 - All specification acceptance criteria are mapped to automated evidence or a documented
   Databricks demonstration.
+- A person unfamiliar with the code can open the dashboard without editing SQL, identify a
+  support issue, trace its data through Bronze, Silver, and Gold, and explain which Databricks
+  job produced each result.
 
 ## Delivery rhythm
 
@@ -217,4 +233,6 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The next implementation slice is Phase 4 point-in-time ticket feature snapshots.
+The next implementation slice is Phase 6 SLA-risk ML lifecycle. Keep the
+[guided demo](./docs/demo/README.md) current as each later product is delivered; finish and
+validate the dashboard in Phase 8.

@@ -23,6 +23,8 @@ support-ops-stream-ingest = "support_ops.ingestion.streaming:main"
 support-ops-gold = "support_ops.transformations.gold:main"
 support-ops-customer-health = "support_ops.transformations.customer_health:main"
 support-ops-incident-signals = "support_ops.transformations.incident_signals:main"
+support-ops-ticket-features = "support_ops.transformations.ticket_features:main"
+support-ops-performance = "support_ops.performance:main"
 
 [project.optional-dependencies]
 spark-test = ["delta-spark==4.0.0", "pyspark==4.0.0"]

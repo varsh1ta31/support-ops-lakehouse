@@ -17,12 +17,16 @@ stream from incremental files into Bronze with checkpointing, deduplication, lat
 and malformed-line capture. Silver and streaming are verified live in Free Edition
 ([evidence](./docs/validation/silver-and-streaming.md)). Hourly Gold support metrics,
 customer health snapshots, and product incident signals are deployed and verified in dev
-([evidence](./docs/validation/gold-live.md)). Next: point-in-time ticket feature snapshots.
+([evidence](./docs/validation/gold-live.md)). Point-in-time ticket feature snapshots are
+deployed and verified in dev ([evidence](./docs/validation/ticket-features.md)).
+The [Spark performance experiment](./docs/validation/performance-results.md) is also deployed
+and measured in dev. Next: SLA-risk model training and scoring.
 
 ## Documentation
 
 - [Product and technical specification](./Support%20Operations%20Lakehouse%20%2B%20AI%20Triage%20%E2%80%94%20Product%20%26%20Technical%20Specification.md)
 - [Implementation plan](./IMPLEMENTATION_PLAN.md)
+- [Guided Databricks demo](./docs/demo/README.md)
 - [Architecture decisions](./docs/architecture/README.md)
 - [Contributing guide](./CONTRIBUTING.md)
 - [Security policy](./SECURITY.md)
@@ -213,6 +217,32 @@ The job is unscheduled; its dev workspace run is recorded in the
 [Gold live validation](./docs/validation/gold-live.md).
 [Local verification evidence](./docs/validation/product-incident-signals.md) records the
 fixture and regression results.
+
+## Build ticket feature snapshots
+
+Run `gold_ticket_features` after Silver with an explicit UTC scoring hour, for example:
+
+```bash
+databricks bundle run --target dev gold_ticket_features --params as_of=2026-01-01T12:00:00Z
+```
+
+`gold.ticket_features` contains one row per active ticket at that point. It includes ticket age,
+SLA time remaining, observed event counts, and customer/product peer rates from history strictly
+before the scoring hour. The final `sla_breached` label remains null until training joins a later
+observed outcome. Rerunning an hour replaces its complete snapshot. See the
+[feature contract](./docs/architecture/0013-ticket-feature-snapshots.md) for cohort definitions.
+
+## Run the Spark performance experiment
+
+```bash
+databricks bundle run --target dev spark_performance --params events=1000000,order=forward
+```
+
+The job generates skewed events in Spark, compares forced merge, default adaptive planning,
+explicit broadcast, and salted merge joins, and stores elapsed times and physical plans in
+`ops.spark_performance_runs`. Use `order=reverse` for an order-bias check. The
+[measured results](./docs/validation/performance-results.md) explain why the default broadcast
+plan is preferred for this synthetic workload.
 
 ## Repository layout
 

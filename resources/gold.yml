@@ -81,3 +81,30 @@ resources:
             environment_version: "2"
             dependencies:
               - ../dist/*.whl
+    gold_ticket_features:
+      name: support-ops-gold-ticket-features
+      max_concurrent_runs: 1
+      parameters:
+        - name: as_of
+          default: ""
+      tasks:
+        - task_key: snapshot_ticket_features
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-ticket-features
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+              - --as-of
+              - "{{job.parameters.as_of}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl

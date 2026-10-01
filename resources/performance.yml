@@ -1,0 +1,32 @@
+resources:
+  jobs:
+    spark_performance:
+      name: support-ops-spark-performance
+      max_concurrent_runs: 1
+      parameters:
+        - name: events
+          default: "1000000"
+        - name: order
+          default: forward
+      tasks:
+        - task_key: compare_joins
+          max_retries: 0
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-performance
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --run-id
+              - "{{job.run_id}}"
+              - --events
+              - "{{job.parameters.events}}"
+              - --order
+              - "{{job.parameters.order}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl

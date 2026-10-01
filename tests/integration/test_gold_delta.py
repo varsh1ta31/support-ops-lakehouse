@@ -5,7 +5,13 @@ from typing import Any
 
 import pytest
 
-from support_ops.transformations import customer_health, gold, incident_signals, silver
+from support_ops.transformations import (
+    customer_health,
+    gold,
+    incident_signals,
+    silver,
+    ticket_features,
+)
 
 pytestmark = pytest.mark.spark
 HOUR = datetime(2026, 1, 1, 12, tzinfo=UTC)
@@ -411,4 +417,120 @@ def test_incident_signals_baseline_and_replay(spark: Any) -> None:
     )
     # The Spark session is shared with downstream Silver integration tests.
     for entity in ("tickets", "ticket_events", "products", "contracts"):
+        replace_silver(spark, entity, [])
+
+
+def test_ticket_features_point_in_time_and_replay(spark: Any) -> None:
+    as_of = HOUR
+    replace_silver(spark, "accounts", [dict(customer_id="c1", segment="Enterprise")])
+    replace_silver(
+        spark,
+        "contracts",
+        [
+            dict(
+                contract_id="sla",
+                customer_id="c1",
+                priority="P1",
+                support_tier="Premium",
+                resolution_sla_minutes=120,
+                effective_from=date(2025, 1, 1),
+            )
+        ],
+    )
+    base = dict(
+        customer_id="c1",
+        product_id="p1",
+        priority="P1",
+        final_status="open",
+        closed_at=None,
+        escalated=False,
+    )
+    replace_silver(
+        spark,
+        "tickets",
+        [
+            dict(base, ticket_id="active", created_at=as_of - timedelta(hours=1)),
+            dict(
+                base,
+                ticket_id="breached",
+                final_status="resolved",
+                escalated=True,
+                created_at=as_of - timedelta(hours=3),
+                closed_at=as_of - timedelta(minutes=30),
+            ),
+            dict(base, ticket_id="old", created_at=as_of - timedelta(days=31)),
+            dict(base, ticket_id="future", created_at=as_of),
+        ],
+    )
+    replace_silver(
+        spark,
+        "ticket_events",
+        [
+            dict(
+                event_id="reply-c",
+                ticket_id="active",
+                customer_id="c1",
+                product_id="p1",
+                event_type="customer_replied",
+                event_time=as_of - timedelta(minutes=40),
+            ),
+            dict(
+                event_id="reply-a",
+                ticket_id="active",
+                customer_id="c1",
+                product_id="p1",
+                event_type="agent_replied",
+                event_time=as_of - timedelta(minutes=30),
+            ),
+            dict(
+                event_id="escalate",
+                ticket_id="active",
+                customer_id="c1",
+                product_id="p1",
+                event_type="engineering_escalated",
+                event_time=as_of - timedelta(minutes=20),
+            ),
+            dict(
+                event_id="future-reply",
+                ticket_id="active",
+                customer_id="c1",
+                product_id="p1",
+                event_type="customer_replied",
+                event_time=as_of + timedelta(minutes=1),
+            ),
+        ],
+    )
+
+    def run(point: datetime = as_of) -> None:
+        ticket_features.build_ticket_features(
+            spark, catalog="spark_catalog", as_of=point, pipeline_run_id="feature-run"
+        )
+
+    run()
+    rows = {row.ticket_id: row for row in spark.table("gold.ticket_features").collect()}
+    assert set(rows) == {"active", "old"}
+    active = rows["active"]
+    assert (active.ticket_age_minutes, active.minutes_to_sla) == (59, 60)
+    assert (active.message_count, active.customer_message_count, active.agent_message_count) == (
+        2,
+        1,
+        1,
+    )
+    assert active.previous_escalation_count == 1
+    assert active.customer_segment == "Enterprise"
+    assert active.customer_ticket_count_30d == 1
+    assert active.customer_breach_rate_90d == 1.0
+    assert active.product_ticket_count_24h == 1
+    assert active.product_escalation_rate_24h == 1.0
+    assert active.product_breach_rate_7d == 1.0
+    assert active.sla_breached is None
+    run()
+    assert spark.table("gold.ticket_features").count() == 2
+    run(as_of + timedelta(hours=1))
+    assert spark.table("gold.ticket_features").count() == 5
+    replace_silver(spark, "tickets", [])
+    replace_silver(spark, "ticket_events", [])
+    run()
+    assert spark.table("gold.ticket_features").count() == 3
+    for entity in ("tickets", "ticket_events", "accounts", "contracts"):
         replace_silver(spark, entity, [])
