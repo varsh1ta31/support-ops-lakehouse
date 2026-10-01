@@ -26,6 +26,7 @@ support-ops-incident-signals = "support_ops.transformations.incident_signals:mai
 support-ops-ticket-features = "support_ops.transformations.ticket_features:main"
 support-ops-performance = "support_ops.performance:main"
 support-ops-training-dataset = "support_ops.training_dataset:main"
+support-ops-historical-features = "support_ops.transformations.historical_features:main"
 
 [project.optional-dependencies]
 spark-test = ["delta-spark==4.0.0", "pyspark==4.0.0"]

@@ -18,3 +18,4 @@ supersedes an old one instead of rewriting history.
 - [ADR 0013: Point-in-time ticket feature snapshots](./0013-ticket-feature-snapshots.md)
 - [ADR 0014: Spark performance experiment](./0014-spark-performance-experiment.md)
 - [ADR 0015: Observed outcomes for training snapshots](./0015-training-labels.md)
+- [ADR 0016: Historical ticket feature backfill before event streaming](./0016-historical-feature-backfill.md)

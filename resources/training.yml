@@ -1,5 +1,32 @@
 resources:
   jobs:
+    ml_historical_features:
+      name: support-ops-ml-historical-features
+      max_concurrent_runs: 1
+      parameters:
+        - name: before
+          default: ""
+      tasks:
+        - task_key: backfill_features
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-historical-features
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+              - --before
+              - "{{job.parameters.before}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl
     ml_training_dataset:
       name: support-ops-ml-training-dataset
       max_concurrent_runs: 1

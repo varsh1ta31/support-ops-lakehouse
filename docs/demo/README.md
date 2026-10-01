@@ -6,8 +6,9 @@ and four Gold products. Risk scoring and AI investigation briefs are planned lat
 Databricks dashboard is now an explicit Phase 8 deliverable; until then, use the workspace pages
 and queries below to follow the data path.
 The [performance experiment](../validation/performance-results.md) is also complete.
-The first labeled training dataset is available, but its current cohort is too small to compare
-models; see the [training-data validation](../validation/training-dataset.md).
+The historical feature backfill now supports nonempty chronological training, validation, and
+test cohorts; see the [backfill validation](../validation/historical-backfill.md). Model fitting is
+the next Phase 6 slice.
 
 ```mermaid
 flowchart LR
@@ -82,9 +83,24 @@ LIMIT 10;
 
 The feature table has 1,634 distinct active tickets at that scoring point. `sla_breached` is
 intentionally null: a future outcome cannot be known when the ticket is scored. The later ML
-phase will turn these inputs into risk scores and attach observed outcomes for training.
+phase will turn these inputs into risk scores. Historical training rows already attach later
+observed outcomes without exposing them as scoring inputs.
 
-**4. Trace one ticket backward.** Copy a `ticket_id` from query 3 and search for it in
+**4. See how the model will learn from earlier tickets.**
+
+```sql
+SELECT split, COUNT(*) AS tickets, SUM(label) AS SLA_breaches
+FROM support_dev.ml.training_dataset
+WHERE label_as_of = TIMESTAMP '2026-09-30 00:00:00'
+GROUP BY split
+ORDER BY split;
+```
+
+This returns 6,293 training, 735 validation, and 1,405 test tickets. `label=1` means the
+ticket ultimately breached its resolution SLA. Open `support_dev.gold.ticket_features` beside
+this table to see that the features were recorded earlier, before the outcome was known.
+
+**5. Trace one ticket backward.** Copy a `ticket_id` from query 3 and search for it in
 `support_dev.silver.ticket_state`, `support_dev.silver.ticket_events`, and
 `support_dev.bronze.ticket_events` in Catalog Explorer. Silver is validated, ordered state;
 Bronze is the retained raw input. For historical scoring points, the feature job reconstructs
