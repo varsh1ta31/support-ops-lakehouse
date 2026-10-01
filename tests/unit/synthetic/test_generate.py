@@ -5,8 +5,8 @@ from typing import cast
 
 import pytest
 
-from support_ops.synthetic.config import Distribution, GenerationConfig
-from support_ops.synthetic.generate import WeightedPool, generate_dataset
+from support_ops.synthetic.config import BreachPattern, Distribution, GenerationConfig
+from support_ops.synthetic.generate import WeightedPool, breach_probability, generate_dataset
 
 
 def config(**changes: object) -> GenerationConfig:
@@ -113,3 +113,20 @@ def test_weighted_pool_validates_inputs() -> None:
         WeightedPool([], [])
     with pytest.raises(ValueError, match="positive total"):
         WeightedPool(["a"], [0])
+
+
+def test_risk_pattern_uses_creation_time_priority_and_tier() -> None:
+    patterned = config(breach_pattern=BreachPattern.PRIORITY_TIER, sla_breach_rate=0.12)
+    high = breach_probability(patterned, priority="P1", support_tier="Standard")
+    low = breach_probability(patterned, priority="P4", support_tier="Premium")
+    assert high == pytest.approx(0.552)
+    assert low == pytest.approx(0.0255)
+    assert high > 10 * low
+    assert breach_probability(config(), priority="P1", support_tier="Standard") == 0.25
+
+
+def test_risk_pattern_has_distinct_manifest_version(tmp_path: Path) -> None:
+    manifest = generate_dataset(
+        config(number_of_tickets=10, breach_pattern=BreachPattern.PRIORITY_TIER), tmp_path
+    )
+    assert manifest["generator_version"] == 2

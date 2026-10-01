@@ -23,8 +23,9 @@ The [Spark performance experiment](./docs/validation/performance-results.md) is 
 and measured in dev. Phase 6 historical features and the leakage-safe training dataset are
 deployed and verified with nonempty chronological splits
 ([evidence](./docs/validation/historical-backfill.md)). Both Phase 6 model candidates are
-[trained and evaluated in MLflow](./docs/validation/model-training.md), but the acceptance gate
-rejected deployment because the current synthetic labels contain little predictable signal.
+[trained and evaluated in MLflow](./docs/validation/model-training.md). The original random-label
+cohort was rejected; an [isolated synthetic risk-signal cohort](./docs/validation/risk-signal-retraining.md)
+passed the same out-of-time gate. Registration and batch scoring are next.
 
 ## Documentation
 
@@ -96,6 +97,7 @@ by Git and include a manifest containing row counts, configuration, and SHA-256 
 Available profiles:
 
 - `demo.toml`: quick representative dataset with intentional customer and product skew
+- `risk_demo.toml`: isolated 2025 ML cohort with a documented priority/tier risk pattern
 - `quality.toml`: small dataset plus isolated known-invalid tickets for quarantine tests
 - `scale.toml`: one-million-ticket performance and ingestion profile
 
@@ -273,6 +275,14 @@ The job fits logistic regression and a gradient-boosted tree, logs each complete
 and evaluation to MLflow, and chooses a candidate using validation PR-AUC. Test performance is
 an acceptance gate. The current dev data fails that gate, so no model is registered or scored;
 see the [measured results](./docs/validation/model-training.md).
+
+For the deliberately learnable cohort, use the isolated `risk_dev` bundle target and
+`config/generation/risk_demo.toml`. Generate its CSVs, place them in the matching
+`support_risk_dev.raw.landing` Volume directories, then run `batch_ingestion`,
+`silver_transformations`, `ml_historical_features`, `ml_training_dataset`, and
+`ml_train_models` with `--target risk_dev` and the same timestamps shown above. Its selected
+model [passed the acceptance gate](./docs/validation/risk-signal-retraining.md); the result is
+specific to synthetic data, and it has not yet been registered or used for scoring.
 
 ## Repository layout
 

@@ -20,3 +20,4 @@ supersedes an old one instead of rewriting history.
 - [ADR 0015: Observed outcomes for training snapshots](./0015-training-labels.md)
 - [ADR 0016: Historical ticket feature backfill before event streaming](./0016-historical-feature-backfill.md)
 - [ADR 0017: Chronological model comparison and acceptance gate](./0017-ml-model-comparison.md)
+- [ADR 0018: Isolated synthetic risk signal for the ML demonstration](./0018-synthetic-risk-signal.md)

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import TypeAlias
 
 from support_ops.schemas import ACCOUNTS, CONTRACTS, PRODUCTS, TICKETS, RecordSchema
-from support_ops.synthetic.config import Distribution, GenerationConfig
+from support_ops.synthetic.config import BreachPattern, Distribution, GenerationConfig
 
 Scalar: TypeAlias = str | int | float | bool | None
 Record: TypeAlias = dict[str, Scalar]
@@ -55,6 +55,21 @@ TIER_SLA_MINUTES: dict[str, dict[str, tuple[int, int]]] = {
         "P4": (720, 4320),
     },
 }
+
+PRIORITY_RISK_MULTIPLIER = {"P1": 4.0, "P2": 2.5, "P3": 0.7, "P4": 0.25}
+TIER_RISK_MULTIPLIER = {"Standard": 1.15, "Enhanced": 1.0, "Premium": 0.85}
+
+
+def breach_probability(config: GenerationConfig, *, priority: str, support_tier: str) -> float:
+    """Return a synthetic, pre-resolution risk based only on facts known at creation."""
+    if config.breach_pattern is BreachPattern.RANDOM:
+        return config.sla_breach_rate
+    return min(
+        0.85,
+        config.sla_breach_rate
+        * PRIORITY_RISK_MULTIPLIER[priority]
+        * TIER_RISK_MULTIPLIER[support_tier],
+    )
 
 
 @dataclass(frozen=True)
@@ -210,7 +225,9 @@ class DatasetGenerator:
             priority = self.rng.choices(PRIORITIES, weights=(0.05, 0.20, 0.50, 0.25), k=1)[0]
             created_at = start + timedelta(seconds=self.rng.randint(0, seconds))
             is_open = self.rng.random() < self.config.open_ticket_rate
-            breached = not is_open and self.rng.random() < self.config.sla_breach_rate
+            breached = not is_open and self.rng.random() < breach_probability(
+                self.config, priority=priority, support_tier=customer.support_tier
+            )
             resolution_sla = TIER_SLA_MINUTES[customer.support_tier][priority][1]
             if breached:
                 resolution_minutes = self.rng.randint(resolution_sla + 1, resolution_sla * 3)
@@ -344,7 +361,7 @@ def generate_dataset(
         files[filename] = {"rows": row_count, "sha256": _sha256(path)}
 
     manifest: dict[str, object] = {
-        "generator_version": 1,
+        "generator_version": 2 if config.breach_pattern is BreachPattern.PRIORITY_TIER else 1,
         "configuration": {
             **asdict(config),
             "start_date": config.start_date.isoformat(),

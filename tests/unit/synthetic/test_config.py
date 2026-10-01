@@ -3,7 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from support_ops.synthetic.config import Distribution, GenerationConfig, load_generation_config
+from support_ops.synthetic.config import (
+    BreachPattern,
+    Distribution,
+    GenerationConfig,
+    load_generation_config,
+)
 
 PROJECT_ROOT = Path(__file__).parents[3]
 
@@ -14,6 +19,13 @@ def test_demo_profile_loads_typed_values() -> None:
     assert config.number_of_tickets == 10_000
     assert config.start_date == date(2025, 1, 1)
     assert config.customer_distribution is Distribution.SKEWED
+    assert config.breach_pattern is BreachPattern.RANDOM
+
+
+def test_risk_demo_profile_enables_creation_time_pattern() -> None:
+    config = load_generation_config(PROJECT_ROOT / "config/generation/risk_demo.toml")
+    assert config.breach_pattern is BreachPattern.PRIORITY_TIER
+    assert config.number_of_tickets == 10_000
 
 
 @pytest.mark.parametrize(

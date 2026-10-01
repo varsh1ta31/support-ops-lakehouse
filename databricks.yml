@@ -32,6 +32,13 @@ targets:
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
 
+  risk_dev:
+    mode: development
+    variables:
+      catalog: support_risk_dev
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
   prod:
     mode: production
     variables:

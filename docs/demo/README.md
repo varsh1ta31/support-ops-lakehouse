@@ -7,8 +7,9 @@ Databricks dashboard is now an explicit Phase 8 deliverable; until then, use the
 and queries below to follow the data path.
 The [performance experiment](../validation/performance-results.md) is also complete.
 The historical feature backfill supports nonempty chronological training, validation, and test
-cohorts. Both candidates are visible in MLflow, but the current synthetic labels do not yield an
-acceptable risk model; see the [model evaluation](../validation/model-training.md).
+cohorts. Both candidates are visible in MLflow, but the original `support_dev` cohort did not
+yield an acceptable risk model. A separate `support_risk_dev` cohort with a documented synthetic
+pattern passed the same gate; see the [retraining validation](../validation/risk-signal-retraining.md).
 
 ```mermaid
 flowchart LR
@@ -111,7 +112,11 @@ state from Silver history rather than reading today's `silver.ticket_state` dire
 PR-AUC for the logistic baseline and gradient-boosted tree. The tree's latest run is tagged
 `deployment_decision=rejected`: it looked better on validation but fell below the test-period
 breach prevalence. Open its `training_manifest.json` to see the exact feature list, time ranges,
-and dataset version. This is why the project does not yet display live ticket risk scores.
+and dataset version. Then open
+`/Users/varshitaravi@yahoo.com/support-ops-support_risk_dev-sla-risk` and compare the selected
+logistic model's test PR-AUC of 0.4115 with the 0.1510 breach prevalence. This shows what the
+designed pattern changes. Both cohorts are synthetic; registration and live scoring have not
+yet been built.
 
 ## What the final demo will add
 

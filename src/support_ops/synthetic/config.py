@@ -17,6 +17,13 @@ class Distribution(StrEnum):
     SKEWED = "skewed"
 
 
+class BreachPattern(StrEnum):
+    """How resolved-ticket SLA breaches are sampled."""
+
+    RANDOM = "random"
+    PRIORITY_TIER = "priority_tier"
+
+
 @dataclass(frozen=True)
 class GenerationConfig:
     """Validated inputs for a reproducible generated dataset."""
@@ -34,6 +41,7 @@ class GenerationConfig:
     open_ticket_rate: float = 0.15
     invalid_record_count: int = 0
     seed: int = 42
+    breach_pattern: BreachPattern = BreachPattern.RANDOM
 
     def __post_init__(self) -> None:
         positive = {
@@ -74,6 +82,7 @@ def load_generation_config(path: Path | str) -> GenerationConfig:
         raise ValueError("date_range must be a TOML table")
     customer_distribution = Distribution(values.pop("customer_distribution", "uniform"))
     product_distribution = Distribution(values.pop("product_distribution", "uniform"))
+    breach_pattern = BreachPattern(values.pop("breach_pattern", "random"))
 
     return GenerationConfig(
         **values,
@@ -81,4 +90,5 @@ def load_generation_config(path: Path | str) -> GenerationConfig:
         end_date=date.fromisoformat(str(date_range["end"])),
         customer_distribution=customer_distribution,
         product_distribution=product_distribution,
+        breach_pattern=breach_pattern,
     )
