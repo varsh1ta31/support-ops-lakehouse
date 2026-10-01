@@ -50,6 +50,7 @@ OPS_TABLES = (
     "silver_evaluations",
     "spark_performance_runs",
 )
+ML_TABLES = ("training_dataset",)
 
 
 def table(catalog: str, layer: Layer, name: str) -> TableRef:
@@ -59,7 +60,7 @@ def table(catalog: str, layer: Layer, name: str) -> TableRef:
         Layer.BRONZE: BRONZE_TABLES,
         Layer.SILVER: SILVER_TABLES,
         Layer.GOLD: GOLD_TABLES,
-        Layer.ML: (),
+        Layer.ML: ML_TABLES,
         Layer.OPS: OPS_TABLES,
     }
     if name not in registered[layer]:

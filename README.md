@@ -20,7 +20,8 @@ customer health snapshots, and product incident signals are deployed and verifie
 ([evidence](./docs/validation/gold-live.md)). Point-in-time ticket feature snapshots are
 deployed and verified in dev ([evidence](./docs/validation/ticket-features.md)).
 The [Spark performance experiment](./docs/validation/performance-results.md) is also deployed
-and measured in dev. Next: SLA-risk model training and scoring.
+and measured in dev. The first Phase 6 training-dataset job is deployed; model training needs
+more historical feature snapshots ([evidence](./docs/validation/training-dataset.md)).
 
 ## Documentation
 
@@ -243,6 +244,20 @@ explicit broadcast, and salted merge joins, and stores elapsed times and physica
 `ops.spark_performance_runs`. Use `order=reverse` for an order-bias check. The
 [measured results](./docs/validation/performance-results.md) explain why the default broadcast
 plan is preferred for this synthetic workload.
+
+## Build the labeled training dataset
+
+Run the separate training-data job after Gold feature snapshots exist:
+
+```bash
+databricks bundle run --target dev ml_training_dataset --params label_as_of=2026-09-30T00:00:00Z,train_end=2026-01-01T06:00:00Z,validation_end=2026-01-01T07:00:00Z,test_end=2026-01-01T08:00:00Z
+```
+
+It writes `ml.training_dataset` using only features visible at scoring time and an outcome
+observed later. Unresolved, reopened, and already overdue tickets are excluded. One scoring
+snapshot currently supplies only 35 labeled tickets and no validation or test rows; the
+[validation note](./docs/validation/training-dataset.md) explains why model fitting waits for
+historical backfill.
 
 ## Repository layout
 

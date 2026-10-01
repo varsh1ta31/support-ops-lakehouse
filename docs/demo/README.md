@@ -6,6 +6,8 @@ and four Gold products. Risk scoring and AI investigation briefs are planned lat
 Databricks dashboard is now an explicit Phase 8 deliverable; until then, use the workspace pages
 and queries below to follow the data path.
 The [performance experiment](../validation/performance-results.md) is also complete.
+The first labeled training dataset is available, but its current cohort is too small to compare
+models; see the [training-data validation](../validation/training-dataset.md).
 
 ```mermaid
 flowchart LR

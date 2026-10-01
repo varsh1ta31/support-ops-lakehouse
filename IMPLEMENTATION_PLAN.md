@@ -166,6 +166,12 @@ Exit gate:
 
 ## Phase 6 — SLA-risk ML lifecycle
 
+Status: in progress. The first slice builds `ml.training_dataset` from earlier Gold feature
+snapshots and later observed Silver outcomes (ADR 0015). It is deployed and verified in dev;
+the current snapshot yields 35 labeled tickets, all in one chronological split
+(`docs/validation/training-dataset.md`). Historical feature backfill across separate periods is
+the next dependency before fitting and comparing models.
+
 Deliverables:
 
 - Leakage-safe, point-in-time training dataset
@@ -233,6 +239,6 @@ For each component:
 4. Provide the requested post-build walkthrough covering purpose, behavior, design choices,
    tradeoffs, verification, and the next dependency.
 
-The next implementation slice is Phase 6 SLA-risk ML lifecycle. Keep the
+The next implementation slice is Phase 6 historical feature backfill for model training. Keep the
 [guided demo](./docs/demo/README.md) current as each later product is delivered; finish and
 validate the dashboard in Phase 8.

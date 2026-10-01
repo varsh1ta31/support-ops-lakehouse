@@ -1,2 +1,41 @@
-# Training jobs are deliberately independent from operational scoring.
-resources: {}
+resources:
+  jobs:
+    ml_training_dataset:
+      name: support-ops-ml-training-dataset
+      max_concurrent_runs: 1
+      parameters:
+        - name: label_as_of
+          default: ""
+        - name: train_end
+          default: ""
+        - name: validation_end
+          default: ""
+        - name: test_end
+          default: ""
+      tasks:
+        - task_key: assemble_labeled_snapshots
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          python_wheel_task:
+            package_name: support_ops_lakehouse
+            entry_point: support-ops-training-dataset
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --pipeline-run-id
+              - "{{job.run_id}}"
+              - --label-as-of
+              - "{{job.parameters.label_as_of}}"
+              - --train-end
+              - "{{job.parameters.train_end}}"
+              - --validation-end
+              - "{{job.parameters.validation_end}}"
+              - --test-end
+              - "{{job.parameters.test_end}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - ../dist/*.whl
